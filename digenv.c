@@ -17,6 +17,17 @@ int main()
 
   pid = fork();
   if(pid == 0) {
+    dup2(pipe_fd1[1], 1);
+    
+    close(pipe_fd1[0]);
+    close(pipe_fd1[1]);
+    close(pipe_fd2[0]);
+    close(pipe_fd2[1]);
+    execlp("printenv", "printenv", (char*) 0);
+  }
+
+  pid = fork();
+  if(pid == 0) {
     dup2(pipe_fd1[0], 0);
     dup2(pipe_fd2[1], 1);
     
@@ -27,24 +38,12 @@ int main()
     execlp("sort", "sort", (char*) 0);
   }
 
-  pid = fork();
-  if(pid == 0) {
-    dup2(pipe_fd2[0], 0);
-    
-    close(pipe_fd1[0]);
-    close(pipe_fd1[1]);
-    close(pipe_fd2[0]);
-    close(pipe_fd2[1]);
-    execlp("cat", "cat", (char*) 0);
-  }
-
-  /* int number = 0; */
-  dup2(pipe_fd1[1], 1);
+  dup2(pipe_fd2[0], 0);
   close(pipe_fd1[0]);
   close(pipe_fd1[1]);
   close(pipe_fd2[0]);
   close(pipe_fd2[1]);
-  execlp("printenv", "printenv", (char*) 0);
+  execlp("less", "less", (char*) 0);
 
   exit(0);
 }
