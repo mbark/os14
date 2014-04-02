@@ -5,11 +5,14 @@
 #include <unistd.h>
 
 void createPipe(int*);
+void closePipes();
+void runCommand(int, int, char*);
+
+int pipe_fd1[2];
+int pipe_fd2[2];
 
 int main()
 {
-  int pipe_fd1[2];
-  int pipe_fd2[2];
   pid_t pid;
 
   createPipe(pipe_fd1);
@@ -17,34 +20,15 @@ int main()
 
   pid = fork();
   if(pid == 0) {
-    dup2(pipe_fd1[1], 1);
-    
-    close(pipe_fd1[0]);
-    close(pipe_fd1[1]);
-    close(pipe_fd2[0]);
-    close(pipe_fd2[1]);
-    execlp("printenv", "printenv", (char*) 0);
+    runCommand(0, pipe_fd1[1], "printenv");
   }
 
   pid = fork();
   if(pid == 0) {
-    dup2(pipe_fd1[0], 0);
-    dup2(pipe_fd2[1], 1);
-    
-    close(pipe_fd1[0]);
-    close(pipe_fd1[1]);
-    close(pipe_fd2[0]);
-    close(pipe_fd2[1]);
-    execlp("sort", "sort", (char*) 0);
+    runCommand(pipe_fd1[0], pipe_fd2[1], "sort");
   }
 
-  dup2(pipe_fd2[0], 0);
-  close(pipe_fd1[0]);
-  close(pipe_fd1[1]);
-  close(pipe_fd2[0]);
-  close(pipe_fd2[1]);
-  execlp("less", "less", (char*) 0);
-
+  runCommand(pipe_fd2[0], 1, "less");
   exit(0);
 }
 
@@ -55,4 +39,20 @@ void createPipe(int* pipe_fd) {
     fprintf(stderr, "Unable to create pipe");
     exit(1);
   }
+}
+
+void closePipes() {
+  close(pipe_fd1[0]);
+  close(pipe_fd1[1]);
+  close(pipe_fd2[0]);
+  close(pipe_fd2[1]);
+}
+
+
+void runCommand(int in, int out, char* command) {
+  dup2(in, 0);
+  dup2(out, 1);
+    
+  closePipes();
+  execlp(command, command, (char*) 0);
 }
