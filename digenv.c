@@ -1,8 +1,8 @@
 /*
-digenv is a program that allows for easier retrieval and filtering of the environmental
+digenv is a program that allows for easier retrieval and filtering of the environment
 variables. You can run it with or without parameters. When digenv is run with no
 parameters it is equivalent to running printenv | sort | THEPAGER. Where THEPAGER is
-the pager specified in the PAGER environmental variable. If the PAGER environmental
+the pager specified in the PAGER environment variable. If the PAGER environment
 variable is unspecified digenv will attempt to use less as the pager, if this fails
 more will be used. If digenv is run with parameters as digenv [parameters] it is
 equivalent to running printenv | grep [parameters] | sort | THEPAGER.
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 {
   /* Process id of the process of THEPAGER. */
   pid_t pid;
-  /* Used to hold the value of the PAGER environmental variable. */
+  /* Used to hold the value of the PAGER environment variable. */
   char* pager;
   /* Used to hold arguments for the printenv and sort commands. */
   char* args[1];
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   if(pid == 0) {
     pager = getenv("PAGER");
     dup2Safe(pipe_fd3[0], 0);
-    /* If the PAGER environmental variable is set attempts to use
+    /* If the PAGER environment variable is set attempts to use
        that as the pager. Otherwise fall back to less and then more. */
     if(pager != NULL) {
       execlp(pager, pager, (char*) 0);
