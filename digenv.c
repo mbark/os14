@@ -7,6 +7,7 @@
 void createPipe(int*);
 void closePipes();
 void runCommand(int, int, char*);
+void runCommandArgs(int, int, char*, char**);
 
 int pipe_fd1[2];
 int pipe_fd2[2];
@@ -28,7 +29,8 @@ int main(int argc, char *argv[])
   if(argc > 1) {
     pid = fork();
     if(pid == 0) {
-      runCommand(pipe_fd1[0], pipe_fd2[1], "sort");
+      argv[0] = "grep";
+      runCommandArgs(pipe_fd1[0], pipe_fd2[1], "grep", argv);
     }
   } else {
     dup2(pipe_fd1[0], pipe_fd2[0]);
@@ -57,12 +59,20 @@ void closePipes() {
   close(pipe_fd1[1]);
   close(pipe_fd2[0]);
   close(pipe_fd2[1]);
+  close(pipe_fd3[0]);
+  close(pipe_fd3[1]);
 }
 
 void runCommand(int in, int out, char* command) {
+  char* args[1];
+  args[0] = command;
+  runCommandArgs(in, out, command, args);
+}
+
+void runCommandArgs(int in, int out, char* command, char** args) {
   dup2(in, 0);
   dup2(out, 1);
     
   closePipes();
-  execlp(command, command, (char*) 0);
+  execvp(command, args);
 }
