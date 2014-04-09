@@ -80,7 +80,7 @@ void runCommand(int in, int out, char* command) {
 void runCommandArgs(int in, int out, char* command, char** args) {
   dup2(in, 0);
   dup2(out, 1);
-    
+
   closePipes();
   execvp(command, args);
 }
