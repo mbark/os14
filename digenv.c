@@ -10,7 +10,8 @@ void closePipes();
 void runCommand(int, int, char*);
 void runCommandArgs(int, int, char*, char**);
 void redirectStd(int, int);
-void runProcess(int, int, char*, char**);
+pid_t runProcess(int, int*, char*, char**);
+void waitForChild();
 
 int pipe_fd1[2];
 int pipe_fd2[2];
@@ -23,26 +24,34 @@ int main(int argc, char *argv[])
   char* args[1];
 
   createPipe(pipe_fd1);
-  createPipe(pipe_fd2);
-  createPipe(pipe_fd3);
 
   args[0] = "printenv";
-  runProcess(0, pipe_fd1[1], "printenv", args);
+  runProcess(0, pipe_fd1, "printenv", args);
+  waitForChild();
+  close(pipe_fd1[1]);
+
+  createPipe(pipe_fd2);
 
   if(argc > 1) {
     argv[0] = "grep";
-    runProcess(pipe_fd1[0], pipe_fd2[1], "grep", argv);
+    runProcess(pipe_fd1[0], pipe_fd2, "grep", argv);
+    waitForChild();
+    close(pipe_fd2[1]);
   } else {
     dup2(pipe_fd1[0], pipe_fd2[0]);
   }
 
+  createPipe(pipe_fd3);
+  
   args[0] = "sort";
-  runProcess(pipe_fd2[0], pipe_fd3[1], "sort", args);
+  runProcess(pipe_fd2[0], pipe_fd3, "sort", args);
+  waitForChild();
+  close(pipe_fd3[1]);
 
   pid = fork();
   if(pid == 0) {
     pager = getenv("PAGER");
-    redirectStd(pipe_fd3[0], 1);
+    dup2(pipe_fd3[0], 0);
     if(pager != NULL) {
       execlp(pager, pager, (char*) 0);
     }
@@ -52,8 +61,10 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  closePipes();
-  waitpid(pid, NULL, 0);
+  waitForChild();
+  close(pipe_fd1[0]);
+  close(pipe_fd2[0]);
+  close(pipe_fd3[0]);
   
   exit(0);
 }
@@ -67,36 +78,25 @@ void createPipe(int* pipe_fd) {
   }
 }
 
-void closePipes() {
-  close(pipe_fd1[0]);
-  close(pipe_fd1[1]);
-  close(pipe_fd2[0]);
-  close(pipe_fd2[1]);
-  close(pipe_fd3[0]);
-  close(pipe_fd3[1]);
-}
-
-void runCommand(int in, int out, char* command) {
-  char* args[1];
-  args[0] = command;
-  runCommandArgs(in, out, command, args);
-}
-
-void runCommandArgs(int in, int out, char* command, char** args) {
-  redirectStd(in, out);
-  execvp(command, args);
-}
-
-void redirectStd(int in, int out) {
-  dup2(in, 0);
-  dup2(out, 1);
-
-  closePipes();
-}
-
-void runProcess(int in, int out, char* command, char** args) {
+pid_t runProcess(int in, int* pipe_out, char* command, char** args) {
   pid_t pid = fork();
   if(pid == 0) {
-    runCommandArgs(in, out, command, args);
+    dup2(in, 0);
+    dup2(pipe_out[1], 1);
+    close(in);
+    close(pipe_out[0]);
+    close(pipe_out[1]);
+    execvp(command, args);
+  }
+
+  return pid;
+}
+
+void waitForChild() {
+  int status;
+  wait(&status);
+  if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    fprintf(stderr, "Child terminated abnormally\n");
+    exit(1);
   }
 }
