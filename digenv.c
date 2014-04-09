@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 void createPipe(int*);
 void closePipes();
@@ -41,7 +42,14 @@ int main(int argc, char *argv[])
     runCommand(pipe_fd2[0], pipe_fd3[1], "sort");
   }
 
-  runCommand(pipe_fd3[0], 1, "less");
+  pid = fork();
+  if(pid == 0) {
+    runCommand(pipe_fd3[0], 1, "less");
+  }
+
+  closePipes();
+  waitpid(pid, NULL, 0);
+  
   exit(0);
 }
 
