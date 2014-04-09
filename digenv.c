@@ -15,10 +15,6 @@ equivalent to running printenv | grep [parameters] | sort | THEPAGER.
 #include <sys/wait.h>
 
 void createPipe(int*);
-void closePipes();
-void runCommand(int, int, char*);
-void runCommandArgs(int, int, char*, char**);
-void redirectStd(int, int);
 void runProcess(int, int*, char*, char**);
 void waitForChild();
 void dup2Safe(int, int);
