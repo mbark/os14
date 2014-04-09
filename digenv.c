@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
     waitForChild();
     closeSafe(pipe_fd2[1]);
   } else {
+    /* Pipe printenv directly into sort skipping the grep step. */
     dup2Safe(pipe_fd1[0], pipe_fd2[0]);
   }
 
@@ -78,6 +79,8 @@ int main(int argc, char *argv[])
   if(pid == 0) {
     pager = getenv("PAGER");
     dup2Safe(pipe_fd3[0], 0);
+    /* If the PAGER environmental variable is set attempts to use
+       that as the pager. Otherwise fall back to less and then more. */
     if(pager != NULL) {
       execlp(pager, pager, (char*) 0);
     }
@@ -125,6 +128,7 @@ void runProcess(int in, int* pipe_out, char* command, char** args) {
   if(pid == 0) {
     dup2Safe(in, 0);
     dup2Safe(pipe_out[1], 1);
+    /* Close all open pipes to ensure that the children terminates correctly. */
     closeSafe(in);
     closeSafe(pipe_out[0]);
     closeSafe(pipe_out[1]);
