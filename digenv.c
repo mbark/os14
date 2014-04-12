@@ -84,6 +84,9 @@ int main(int argc, char *argv[])
     execlp("more", "more", (char*) 0);
     fprintf(stderr, "Unable to find a pager");
     exit(1);
+  } else if(pid == -1) {
+    fprintf(stderr, "Unable to fork");
+    exit(1);
   }
 
   waitForChild();
@@ -130,6 +133,9 @@ void runProcess(int in, int* pipe_out, char* command, char** args) {
     closeSafe(pipe_out[1]);
     execvp(command, args);
     fprintf(stderr, "Unable to execute command %s", command);
+    exit(1);
+  } else if(pid == -1) {
+    fprintf(stderr, "Unable to fork");
     exit(1);
   }
 }
