@@ -16,7 +16,7 @@ equivalent to running printenv | grep [parameters] | sort | THEPAGER.
 
 void createPipe(int*);
 void runProcess(int, int*, char*, char**);
-void waitForChild();
+void waitForChild(int);
 void dup2Safe(int, int);
 void closeSafe(int);
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
   args[0] = "printenv";
   runProcess(0, pipe_fd1, "printenv", args);
-  waitForChild();
+  waitForChild(1);
   closeSafe(pipe_fd1[1]);
 
   createPipe(pipe_fd2);
@@ -57,7 +57,9 @@ int main(int argc, char *argv[])
   if(argc > 1) {
     argv[0] = "grep";
     runProcess(pipe_fd1[0], pipe_fd2, "grep", argv);
-    waitForChild();
+    /* Grep has exit status 0 if matches were found, 1 if no matches were found
+       and an exit status >= 2 if an error occurred. */
+    waitForChild(2);
   } else {
     /* Pipe printenv directly into sort skipping the grep step. */
     dup2Safe(pipe_fd1[0], pipe_fd2[0]);
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
   
   args[0] = "sort";
   runProcess(pipe_fd2[0], pipe_fd3, "sort", args);
-  waitForChild();
+  waitForChild(1);
   closeSafe(pipe_fd3[1]);
 
   pid = fork();
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  waitForChild();
+  waitForChild(1);
   closeSafe(pipe_fd1[0]);
   closeSafe(pipe_fd2[0]);
   closeSafe(pipe_fd3[0]);
@@ -142,8 +144,11 @@ void runProcess(int in, int* pipe_out, char* command, char** args) {
 
 /* This function waits until any child terminates at which point it checks
    if the child terminated successfully. If the child did not, it prints
-   an error message to stderr and exits the process. */
-void waitForChild() {
+   an error message to stderr and exits the process.
+   The error_range parameter indicates which exit statuses should be
+   considered as errors. All exit statuses >= error_range will be taken
+   as indication that an error occurred. */
+void waitForChild(int error_range) {
   /* Holds the exit status of the child that terminated. */
   int status;
   /* Holds the pid of the child that terminated. */
@@ -153,7 +158,7 @@ void waitForChild() {
     exit(1);
   }
   
-  if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+  if(!WIFEXITED(status) || WEXITSTATUS(status) >= error_range) {
     fprintf(stderr, "Child terminated abnormally\n");
     exit(1);
   }
