@@ -58,11 +58,11 @@ int main(int argc, char *argv[])
     argv[0] = "grep";
     runProcess(pipe_fd1[0], pipe_fd2, "grep", argv);
     waitForChild();
-    closeSafe(pipe_fd2[1]);
   } else {
     /* Pipe printenv directly into sort skipping the grep step. */
     dup2Safe(pipe_fd1[0], pipe_fd2[0]);
   }
+  closeSafe(pipe_fd2[1]);
 
   createPipe(pipe_fd3);
   
