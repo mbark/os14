@@ -24,6 +24,10 @@ int main(int argc, char* argv[]) {
     printf("minishell>");
     readCommand(buffer, MAX_COMMAND_LENGTH);
     parseCommand(buffer, &command, args);
+    if(command == NULL) {
+      continue;
+    }
+    
     if(strcmp(command, "exit") == 0) {
       quit();
     } else if(strcmp(command, "cd") == 0) {
@@ -75,7 +79,9 @@ void runCommandForeground(char* command, char* args[]) {
     fprintf(stderr, "Unable to start command: %s\n", command);
     exit(1);
   } else if(pid > 0) {
+    printf("Started foreground process with pid %d\n", pid);
     wait(NULL);
+    printf("Foreground process %d ended\n", pid);
   } else {
 
   }
