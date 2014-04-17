@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 
 #define MAX_COMMAND_LENGTH (70)
 #define MAX_NUM_ARGS (5)
@@ -14,6 +15,7 @@ void parseCommand(char*, char**, char**);
 void cd(char*);
 void quit();
 void runCommandForeground(char*, char*[]);
+unsigned long getTimestamp();
 
 int main(int argc, char* argv[]) {
   char buffer[MAX_COMMAND_LENGTH];
@@ -74,15 +76,24 @@ void quit() {
 
 void runCommandForeground(char* command, char* args[]) {
   pid_t pid = fork();
+  unsigned long startTime;
   if(pid == 0) {
     execvp(command, args);
     fprintf(stderr, "Unable to start command: %s\n", command);
     exit(1);
   } else if(pid > 0) {
+    startTime = getTimestamp();
     printf("Started foreground process with pid %d\n", pid);
     wait(NULL);
     printf("Foreground process %d ended\n", pid);
+    printf("Wallclock time: %.3f\n", (getTimestamp() - startTime) / 1000.0);
   } else {
 
   }
+}
+
+unsigned long getTimestamp() {
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  return 1000000 * tv.tv_sec + tv.tv_usec;
 }
