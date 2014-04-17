@@ -14,15 +14,21 @@ void readCommand(char*, int);
 void parseCommand(char*, char**, char**);
 void cd(char*);
 void quit();
-void runCommandForeground(char*, char*[]);
+void runCommand(char*, char*[]);
 unsigned long getTimestamp();
 
 int main(int argc, char* argv[]) {
   char buffer[MAX_COMMAND_LENGTH];
   char* command;
   char* args[MAX_NUM_ARGS + 1];
+  pid_t child_pid;
   
   while(1) {
+    while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+      printf("Background process %d terminated\n", child_pid);
+    }
+
+
     printf("minishell>");
     readCommand(buffer, MAX_COMMAND_LENGTH);
     parseCommand(buffer, &command, args);
@@ -35,7 +41,7 @@ int main(int argc, char* argv[]) {
     } else if(strcmp(command, "cd") == 0) {
       cd(args[1]);
     } else {
-      runCommandForeground(command, args);
+      runCommand(command, args);
     }
   }
   
@@ -74,17 +80,34 @@ void quit() {
   exit(0);
 }
 
-void runCommandForeground(char* command, char* args[]) {
+void runCommand(char* command, char* args[]) {
+  int background = 0;
+  int i;
   pid_t pid = fork();
   unsigned long startTime;
+
+  for(i = MAX_NUM_ARGS; i >= 0; i--) {
+    if(args[i] != NULL) {
+      if(strcmp(args[i], "&") == 0) {
+	background = 1;
+	args[i] = NULL;
+      }
+      break;
+    }
+  }
+  
   if(pid == 0) {
     execvp(command, args);
     fprintf(stderr, "Unable to start command: %s\n", command);
     exit(1);
   } else if(pid > 0) {
     startTime = getTimestamp();
-    printf("Started foreground process with pid %d\n", pid);
-    wait(NULL);
+    printf("Started %s process with pid %d\n", background ? "background" : "foreground", pid);
+    if(background) {
+      return;
+    }
+    
+    waitpid(pid, NULL, 0);
     printf("Foreground process %d ended\n", pid);
     printf("Wallclock time: %.3f\n", (getTimestamp() - startTime) / 1000.0);
   } else {
