@@ -9,27 +9,26 @@
 #define MAX_NUM_ARGS (5)
 
 void readCommand(char*, int);
-void parseCommand(char*, char*, char*[MAX_NUM_ARGS]);
+void parseCommand(char*, char**, char**);
 void cd(char*);
-void getDirectory(char*, char*);
+void getDirectory(char*[]);
 void quit();
 void runCommand(char*);
 
 int main(int argc, char* argv[]) {
   char buffer[MAX_COMMAND_LENGTH];
-  char command[MAX_COMMAND_LENGTH];
+  char* command;
   char* args[MAX_NUM_ARGS];
   
   printf("minishell>");
   readCommand(buffer, MAX_COMMAND_LENGTH);
-  parseCommand(buffer, command, args);
-  if(strcmp(buffer, "exit") == 0) {
+  parseCommand(buffer, &command, args);
+  if(strcmp(command, "exit") == 0) {
     quit();
-  } else if(strcmp(buffer, "cd") == 0) {
-    getDirectory(buffer, buffer);
-    /* cd(); */
+  } else if(strcmp(command, "cd") == 0) {
+    cd("");
   } else {
-    runCommand(buffer);
+    runCommand(command);
   }
   
   
@@ -45,26 +44,24 @@ void readCommand(char* buffer, int max_size) {
   }
 }
 
-void parseCommand(char* buffer, char* command, char* args[MAX_NUM_ARGS]) {
+void parseCommand(char* buffer, char** command, char** args) {
   int i;
-  command = strtok(buffer, " ");
-  printf("Command: %s", command);
+  *command = strtok(buffer, " ");
   for(i = 0; i < MAX_NUM_ARGS; i++) {
     args[i] = strtok(NULL, " ");
-    printf("Arg%d: %s", i, args[i]);
   }
 }
 
 void cd(char* path) {
-  
+  printf("cd\n");
 }
 
-void getDirectory(char* buffer, char* path) {
-  char* string = strtok(buffer, " ");
-  printf("got: %s", string);
+void getDirectory(char* args[]) {
+
 }
 
 void quit() {
+  printf("quit\n");
   exit(0);
 }
 
