@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #define MAX_COMMAND_LENGTH (70)
 #define MAX_NUM_ARGS (5)
@@ -22,12 +23,16 @@ int main(int argc, char* argv[]) {
   char* command;
   char* args[MAX_NUM_ARGS + 1];
   pid_t child_pid;
+
+  if(signal(SIGINT, SIG_IGN) == SIG_ERR) {
+    printf("Failed to install signal handler\n");
+    exit(1);
+  }
   
   while(1) {
     while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
       printf("Background process %d terminated\n", child_pid);
     }
-
 
     printf("minishell>");
     readCommand(buffer, MAX_COMMAND_LENGTH);
