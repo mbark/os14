@@ -7,6 +7,17 @@ variable is unspecified digenv will attempt to use less as the pager, if this fa
 more will be used. If digenv is run with parameters as digenv [parameters] it is
 equivalent to running printenv | grep [parameters] | sort | THEPAGER.
  */
+
+/*
+Note that throughout the code the return value of calls of functions in the
+exec-family is not checked. This is because these functions only return if an
+error has occurred, so there is no need to check the return value explicitly.
+
+Note also that the return value of fprintf is not checked. This is because this
+function is only used when an error has been detected, and we are about to exit.
+In this case there is no need to check the return value, since there is no
+reasonable way to deal with the error, and we will exit shortly anyway.
+*/
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
