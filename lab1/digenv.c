@@ -54,11 +54,12 @@ int main(int argc, char *argv[])
   /* Used to hold the value of the PAGER environment variable. */
   char* pager;
   /* Used to hold arguments for the printenv and sort commands. */
-  char* args[1];
+  char* args[2];
 
   createPipe(pipe_fd1);
 
   args[0] = "printenv";
+  args[1] = NULL;
   runProcess(0, pipe_fd1, "printenv", args);
   waitForChild(1);
   closeSafe(pipe_fd1[1]);
@@ -80,6 +81,7 @@ int main(int argc, char *argv[])
   createPipe(pipe_fd3);
   
   args[0] = "sort";
+  args[1] = NULL;
   runProcess(pipe_fd2[0], pipe_fd3, "sort", args);
   waitForChild(1);
   closeSafe(pipe_fd3[1]);
