@@ -1,3 +1,4 @@
+#define _POSIX_SOURCE
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
@@ -25,7 +26,12 @@ int main(int argc, char* argv[]) {
   pid_t child_pid;
 
   if(signal(SIGINT, SIG_IGN) == SIG_ERR) {
-    printf("Failed to install signal handler\n");
+    printf("Failed to install signal handler SIGINT\n");
+    exit(1);
+  }
+
+  if(signal(SIGTERM, SIG_IGN) == SIG_ERR) {
+    printf("Failed to install signal handler SIGTERM\n");
     exit(1);
   }
   
@@ -82,6 +88,7 @@ void cd(char* directory) {
 }
 
 void quit() {
+  kill(0, SIGTERM);
   exit(0);
 }
 
