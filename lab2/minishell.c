@@ -17,7 +17,7 @@ void readCommand(char*, int);
 void parseCommand(char*, char**, char**);
 void cd(char*);
 void goHome();
-void quit();
+void quit(int);
 void runCommand(char*, char*[]);
 unsigned long getTimestamp();
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     }
 
     if(strcmp(command, "exit") == 0) {
-      quit();
+      quit(0);
     } else if(strcmp(command, "cd") == 0) {
       cd(args[1]);
     } else {
@@ -76,7 +76,7 @@ void readCommand(char* buffer, int max_size) {
      In the second case we exit because it cannot be known if more characters
      can be read. */
     if(return_value == NULL) {
-      quit();
+      quit(1);
     }
 
     ln = strlen(buffer) - 1;
@@ -113,12 +113,12 @@ void goHome() {
   }
 }
 
-void quit() {
+void quit(int status) {
   /* Send a termination signal to all children. We ignore the
      return value of the kill call, because if it fails we have
      no other way of terminating all children so we exit. */
     kill(0, SIGTERM);
-    exit(0);
+    exit(status);
   }
 
 void runCommand(char* command, char* args[]) {
@@ -126,6 +126,10 @@ void runCommand(char* command, char* args[]) {
   int i;
   unsigned long startTime;
   pid_t pid = fork();
+  if(pid == -1) {
+    fprintf(stderr, "Unable to fork.\n");
+    quit(1);
+  }
 
   for(i = MAX_NUM_ARGS; i >= 0; i--) {
     if(args[i] != NULL) {
@@ -140,7 +144,7 @@ void runCommand(char* command, char* args[]) {
   if(pid == 0) {
     execvp(command, args);
     fprintf(stderr, "Unable to start command: %s\n", command);
-    exit(1);
+    quit(1);
   } else if(pid > 0) {
     startTime = getTimestamp();
     printf("Started %s process with pid %d\n", background ? "background" : "foreground", pid);
@@ -148,16 +152,22 @@ void runCommand(char* command, char* args[]) {
       return;
     }
 
-    waitpid(pid, NULL, 0);
+    /* waitpid returns -1 on error. Since we know that pid is a valid pid
+       the only error that can occur is EINTR, which means that we received
+       an unblocked signal. In this case we continue waiting. */
+    while(waitpid(pid, NULL, 0) == -1);
     printf("Foreground process %d ended\n", pid);
     printf("Wallclock time: %.3f\n", (getTimestamp() - startTime) / 1000.0);
-  } else {
-
   }
 }
 
 unsigned long getTimestamp() {
   struct timeval tv;
-  gettimeofday(&tv,NULL);
+  if(gettimeofday(&tv,NULL) == -1) {
+    /* If we are unable to get the time of day we return 0, as this
+       should not be a fatal error. */
+    fprintf(stderr, "Unable to get current time stamp.\n");
+    return 0;
+  }
   return 1000000 * tv.tv_sec + tv.tv_usec;
 }
