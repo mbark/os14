@@ -16,6 +16,7 @@ void handleSignal(int);
 void readCommand(char*, int);
 void parseCommand(char*, char**, char**);
 void cd(char*);
+void goHome();
 void quit();
 void runCommand(char*, char*[]);
 unsigned long getTimestamp();
@@ -23,8 +24,9 @@ unsigned long getTimestamp();
 int main(int argc, char* argv[]) {
   char buffer[MAX_COMMAND_LENGTH];
   char* command;
-  char* args[MAX_NUM_ARGS + 1];
+  char* args[MAX_NUM_ARGS + 2];
   pid_t child_pid;
+  args[MAX_NUM_ARGS + 1] = NULL;
 
   handleSignal(SIGINT);
   handleSignal(SIGTERM);
@@ -69,6 +71,10 @@ void handleSignal(int sig) {
 void readCommand(char* buffer, int max_size) {
   size_t ln;
   char* return_value = fgets(buffer, max_size, stdin);
+  /* fgets returns NULL when EOF occurs while no characters have been read
+     or on error. In the first case no more characters can be read and we exit.
+     In the second case we exit because it cannot be known if more characters
+     can be read. */
   if(return_value == NULL) {
     quit();
   }
@@ -90,15 +96,27 @@ void parseCommand(char* buffer, char** command, char** args) {
 
 void cd(char* directory) {
   if(directory == NULL) {
-    directory = getenv("HOME");
+    goHome();
+    return;
   }
-
+  
   if(chdir(directory) == -1) {
-    chdir(getenv("HOME"));
+    fprintf(stderr, "Unable to go to directory %s. Attempting to go to HOME directory\n", directory);
+    goHome();
+  }
+}
+
+void goHome() {
+  char* home = getenv("HOME");
+  if(chdir(home) == -1) {
+    fprintf(stderr, "Unable to go to HOME directory. Possibly not set.\n");
   }
 }
 
 void quit() {
+  /* Send a termination signal to all children. We ignore the
+     return value of the kill call, because if it fails we have
+     no other way of terminating all children so we exit. */
   kill(0, SIGTERM);
   exit(0);
 }
@@ -106,8 +124,8 @@ void quit() {
 void runCommand(char* command, char* args[]) {
   int background = 0;
   int i;
-  pid_t pid = fork();
   unsigned long startTime;
+  pid_t pid = fork();
 
   for(i = MAX_NUM_ARGS; i >= 0; i--) {
     if(args[i] != NULL) {
