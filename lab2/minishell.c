@@ -30,6 +30,12 @@ int main(int argc, char* argv[]) {
   handleSignal(SIGTERM);
   
   while(1) {
+    /* If waitpid returns a value > 0 then a process has terminated.
+       If the return value is 0 then there are children but none of them
+       has terminated.
+       If the return value is < 0 then an error has occurred, but the only
+       possible error when the WNOHANG flag is specified is that there are
+       no children, in which case there are no background processes. */
     while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
       printf("Background process %d terminated\n", child_pid);
     }
@@ -62,7 +68,11 @@ void handleSignal(int sig) {
 
 void readCommand(char* buffer, int max_size) {
   size_t ln;
-  fgets(buffer, max_size, stdin);
+  char* return_value = fgets(buffer, max_size, stdin);
+  if(return_value == NULL) {
+    quit();
+  }
+  
   ln = strlen(buffer) - 1;
   if(buffer[ln] == '\n') {
     buffer[ln] = '\0';
