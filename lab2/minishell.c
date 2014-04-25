@@ -12,6 +12,7 @@
 #define MAX_COMMAND_LENGTH (70)
 #define MAX_NUM_ARGS (5)
 
+void handleSignal(int);
 void readCommand(char*, int);
 void parseCommand(char*, char**, char**);
 void cd(char*);
@@ -25,15 +26,8 @@ int main(int argc, char* argv[]) {
   char* args[MAX_NUM_ARGS + 1];
   pid_t child_pid;
 
-  if(signal(SIGINT, SIG_IGN) == SIG_ERR) {
-    printf("Failed to install signal handler SIGINT\n");
-    exit(1);
-  }
-
-  if(signal(SIGTERM, SIG_IGN) == SIG_ERR) {
-    printf("Failed to install signal handler SIGTERM\n");
-    exit(1);
-  }
+  handleSignal(SIGINT);
+  handleSignal(SIGTERM);
   
   while(1) {
     while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
@@ -57,6 +51,13 @@ int main(int argc, char* argv[]) {
   }
   
   exit(1);
+}
+
+void handleSignal(int sig) {
+  if(signal(sig, SIG_IGN) == SIG_ERR) {
+    printf("Failed to install signal handler for signal %d\n", sig);
+    exit(1);
+  }
 }
 
 void readCommand(char* buffer, int max_size) {
