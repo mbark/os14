@@ -38,106 +38,106 @@ int main(int argc, char* argv[]) {
        If the return value is < 0 then an error has occurred, but the only
        possible error when the WNOHANG flag is specified is that there are
        no children, in which case there are no background processes. */
-    while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
-      printf("Background process %d terminated\n", child_pid);
-    }
+       while((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+        printf("Background process %d terminated\n", child_pid);
+      }
 
-    printf("minishell>");
-    readCommand(buffer, MAX_COMMAND_LENGTH);
-    parseCommand(buffer, &command, args);
-    if(command == NULL) {
-      continue;
+      printf("minishell>");
+      readCommand(buffer, MAX_COMMAND_LENGTH);
+      parseCommand(buffer, &command, args);
+      if(command == NULL) {
+        continue;
+      }
+      
+      if(strcmp(command, "exit") == 0) {
+        quit();
+      } else if(strcmp(command, "cd") == 0) {
+        cd(args[1]);
+      } else {
+        runCommand(command, args);
+      }
     }
     
-    if(strcmp(command, "exit") == 0) {
-      quit();
-    } else if(strcmp(command, "cd") == 0) {
-      cd(args[1]);
-    } else {
-      runCommand(command, args);
-    }
-  }
-  
-  exit(1);
-}
-
-void handleSignal(int sig) {
-  if(signal(sig, SIG_IGN) == SIG_ERR) {
-    printf("Failed to install signal handler for signal %d\n", sig);
     exit(1);
   }
-}
 
-void readCommand(char* buffer, int max_size) {
-  size_t ln;
-  char* return_value = fgets(buffer, max_size, stdin);
+  void handleSignal(int sig) {
+    if(signal(sig, SIG_IGN) == SIG_ERR) {
+      printf("Failed to install signal handler for signal %d\n", sig);
+      exit(1);
+    }
+  }
+
+  void readCommand(char* buffer, int max_size) {
+    size_t ln;
+    char* return_value = fgets(buffer, max_size, stdin);
   /* fgets returns NULL when EOF occurs while no characters have been read
      or on error. In the first case no more characters can be read and we exit.
      In the second case we exit because it cannot be known if more characters
      can be read. */
-  if(return_value == NULL) {
-    quit();
+     if(return_value == NULL) {
+      quit();
+    }
+    
+    ln = strlen(buffer) - 1;
+    if(buffer[ln] == '\n') {
+      buffer[ln] = '\0';
+    }
   }
-  
-  ln = strlen(buffer) - 1;
-  if(buffer[ln] == '\n') {
-    buffer[ln] = '\0';
-  }
-}
 
-void parseCommand(char* buffer, char** command, char** args) {
-  int i;
-  *command = strtok(buffer, " ");
-  args[0] = *command;
-  for(i = 1; i < MAX_NUM_ARGS + 1; i++) {
-    args[i] = strtok(NULL, " ");
+  void parseCommand(char* buffer, char** command, char** args) {
+    int i;
+    *command = strtok(buffer, " ");
+    args[0] = *command;
+    for(i = 1; i < MAX_NUM_ARGS + 1; i++) {
+      args[i] = strtok(NULL, " ");
+    }
   }
-}
 
-void cd(char* directory) {
-  if(directory == NULL) {
-    goHome();
-    return;
+  void cd(char* directory) {
+    if(directory == NULL) {
+      goHome();
+      return;
+    }
+    
+    if(chdir(directory) == -1) {
+      fprintf(stderr, "Unable to go to directory %s. Attempting to go to HOME directory\n", directory);
+      goHome();
+    }
   }
-  
-  if(chdir(directory) == -1) {
-    fprintf(stderr, "Unable to go to directory %s. Attempting to go to HOME directory\n", directory);
-    goHome();
-  }
-}
 
-void goHome() {
-  char* home = getenv("HOME");
-  if(chdir(home) == -1) {
-    fprintf(stderr, "Unable to go to HOME directory. Possibly not set.\n");
+  void goHome() {
+    char* home = getenv("HOME");
+    if(chdir(home) == -1) {
+      fprintf(stderr, "Unable to go to HOME directory. Possibly not set.\n");
+    }
   }
-}
 
-void quit() {
+  void quit() {
   /* Send a termination signal to all children. We ignore the
      return value of the kill call, because if it fails we have
      no other way of terminating all children so we exit. */
-  kill(0, SIGTERM);
-  exit(0);
-}
+     kill(0, SIGTERM);
+     exit(0);
+   }
 
-void runCommand(char* command, char* args[]) {
-  int background = 0;
-  int i;
-  unsigned long startTime;
-  pid_t pid = fork();
+   void runCommand(char* command, char* args[]) {
+    int background = 0;
+    int i;
+    unsigned long startTime;
+    pid_t pid = fork();
 
-  for(i = MAX_NUM_ARGS; i >= 0; i--) {
-    if(args[i] != NULL) {
-      if(strcmp(args[i], "&") == 0) {
-	background = 1;
-	args[i] = NULL;
-      }
-      break;
-    }
-  }
-  
-  if(pid == 0) {
+    for(i = MAX_NUM_ARGS; i >= 0; i--) {
+      if(args[i] != NULL) {
+        if(strcmp(args[i], "&") == 0) {
+         background = 1;
+         args[i] = NULL;
+       }
+       break;
+     }
+   }
+   
+   if(pid == 0) {
     execvp(command, args);
     fprintf(stderr, "Unable to start command: %s\n", command);
     exit(1);
