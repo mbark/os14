@@ -31,7 +31,8 @@
 /* The maximum allowed number of arguments given to a command. */
 #define MAX_NUM_ARGS (5)
 
-void handleSignal(int);
+void ignoreSignal(int);
+void resetSignal(int);
 void readCommand(char*, int);
 void parseCommand(char*, char**, char**);
 void cd(char*);
@@ -61,8 +62,8 @@ int main(int argc, char* argv[]) {
   pid_t child_pid;
   args[MAX_NUM_ARGS + 1] = NULL;
 
-  handleSignal(SIGINT);
-  handleSignal(SIGTERM);
+  ignoreSignal(SIGINT);
+  ignoreSignal(SIGTERM);
 
   while(1) {
     /* If waitpid returns a value > 0 then a process has terminated.
@@ -97,9 +98,19 @@ int main(int argc, char* argv[]) {
 /* Installs a signal handler that ignores the given signal number.
    If the signal handler cannot be installed the shell exits.
    sig is the signal number to ignore. */
-void handleSignal(int sig) {
+void ignoreSignal(int sig) {
   if(signal(sig, SIG_IGN) == SIG_ERR) {
     printf("Failed to install signal handler for signal %d\n", sig);
+    exit(1);
+  }
+}
+
+/* Resets the signal handler for the given signal number.
+   If the signal handler cannot be reset the shell exits.
+   sig is the signal number to ignore. */
+void resetSignal(int sig) {
+  if(signal(sig, SIG_DFL) == SIG_ERR) {
+    printf("Failed to reset signal handler for signal %d\n", sig);
     exit(1);
   }
 }
@@ -212,6 +223,8 @@ void runCommand(char* command, char* args[]) {
   }
 
   if(pid == 0) {
+    resetSignal(SIGINT);
+    resetSignal(SIGTERM);
     execvp(command, args);
     fprintf(stderr, "Unable to start command: %s\n", command);
     quit(1);
