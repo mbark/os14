@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/sh
 echo "-- Testing your implementation of malloc --"
 echo ""
 echo "- If you have any problem in passing a test read the corresponding"
@@ -22,10 +22,3 @@ read ans
 echo -n "********************* TEST REALLOC ... "
 read ans
 ./t5
-echo -n "********************* TEST CRASH  SIMPLE ... "
-read ans
-./t6
-echo -n "********************* TEST CRASH COMPLEX ...  "
-read ans
-./t7
-

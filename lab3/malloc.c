@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "brk.h"
 #include <unistd.h>
 #include <string.h> 
