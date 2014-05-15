@@ -93,7 +93,7 @@ static Header *morecore(unsigned nu)
   return freep;
 }
 
-void * malloc(size_t nbytes)
+void * nf_malloc(size_t nbytes)
 {
   Header *p, *prevp;
   Header * morecore(unsigned);
@@ -107,11 +107,11 @@ void * malloc(size_t nbytes)
     base.s.ptr = freep = prevp = &base;
     base.s.size = 0;
   }
-  for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) {
-    if(p->s.size >= nunits) {                           /* big enough */
-      if (p->s.size == nunits)                          /* exactly */
+  for(p= prevp->s.ptr; ; prevp = p, p = p->s.ptr) {
+    if(p->s.size >= nunits) { /* big enough */
+      if (p->s.size == nunits) /* exactly */
 	prevp->s.ptr = p->s.ptr;
-      else {                                            /* allocate tail end */
+      else { /* allocate tail end */
 	p->s.size -= nunits;
 	p += p->s.size;
 	p->s.size = nunits;
@@ -119,10 +119,62 @@ void * malloc(size_t nbytes)
       freep = prevp;
       return (void *)(p+1);
     }
-    if(p == freep)                                      /* wrapped around free list */
+    if(p == freep) /* wrapped around free list */
       if((p = morecore(nunits)) == NULL)
-	return NULL;                                    /* none left */
+	return NULL; /* none left */
   }
+}
+
+void * wf_malloc(size_t nbytes)
+{
+  Header *p, *prevp;
+  Header *largest = NULL;
+  Header *largestprev = NULL;
+  Header * morecore(unsigned);
+  unsigned nunits;
+
+  if(nbytes == 0) return NULL;
+
+  nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1;
+
+  if((prevp = freep) == NULL) {
+    base.s.ptr = freep = prevp = &base;
+    base.s.size = 0;
+  }
+  
+  for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) {
+    if(p->s.size >= nunits && (largest == NULL || p->s.size > largest->s.size)) {
+      largest = p;
+      largestprev = prevp;
+    }
+
+    if(p == freep) {
+      if(largest != NULL) {
+	break;
+      }
+      
+      if((p = morecore(nunits)) == NULL) {
+	return NULL;
+      }
+    }
+  }
+
+  p = largest;
+  prevp = largestprev;
+
+  if (p->s.size == nunits)
+    prevp->s.ptr = p->s.ptr;
+  else {
+    p->s.size -= nunits;
+    p += p->s.size;
+    p->s.size = nunits;
+  }
+  freep = prevp;
+  return (void *)(p+1);
+}
+
+void * malloc(size_t nbytes) {
+  return nf_malloc(nbytes);
 }
 
 int findSize(void * ptr) {
