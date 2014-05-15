@@ -4,6 +4,7 @@
 #include <string.h> 
 #include <errno.h> 
 #include <sys/mman.h>
+#include <stdio.h>
 
 #define NALLOC 1024                                     /* minimum #units to request */
 
@@ -124,3 +125,37 @@ void * malloc(size_t nbytes)
   }
 }
 
+int findSize(void * ptr) {
+  Header *h = (Header *) ptr - 1;
+  return (h->s.size - 1) * sizeof(Header);
+}
+
+void * realloc(void * ptr, size_t nbytes) {
+  void * newptr;
+  int size;
+  
+  if(ptr == NULL) {
+    return malloc(nbytes);
+  }
+
+  if(nbytes == 0) {
+    free(ptr);
+    return NULL;
+  }
+
+  newptr = malloc(nbytes);
+  if(newptr == NULL) {
+    return NULL;
+  }
+
+  size = findSize(ptr);
+  if(size < nbytes) {
+    memcpy(newptr, ptr, size);
+  } else {
+    memcpy(newptr, ptr, nbytes);
+  }
+
+  free(ptr);
+  
+  return newptr;
+}
