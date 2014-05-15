@@ -93,55 +93,45 @@ static Header *morecore(unsigned nu)
   return freep;
 }
 
-void * ff_malloc(size_t nbytes)
+void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
+  if (p->s.size == nunits)
+    prevp->s.ptr = p->s.ptr;
+  else {
+    p->s.size -= nunits;
+    p += p->s.size;
+    p->s.size = nunits;
+  }
+  freep = prevp;
+  return (void *)(p+1);
+}
+
+void * ff_malloc(unsigned nunits)
 {
   Header *p, *prevp;
   Header * morecore(unsigned);
-  unsigned nunits;
 
-  if(nbytes == 0) return NULL;
-
-  nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1;
-
-  if((prevp = freep) == NULL) {
-    base.s.ptr = freep = prevp = &base;
-    base.s.size = 0;
-  }
+  prevp = freep;
   for(p= prevp->s.ptr; ; prevp = p, p = p->s.ptr) {
     if(p->s.size >= nunits) { /* big enough */
-      if (p->s.size == nunits) /* exactly */
-	prevp->s.ptr = p->s.ptr;
-      else { /* allocate tail end */
-	p->s.size -= nunits;
-	p += p->s.size;
-	p->s.size = nunits;
-      }
-      freep = prevp;
-      return (void *)(p+1);
+      return allocate_memory(prevp, p, nunits);
     }
-    if(p == freep) /* wrapped around free list */
-      if((p = morecore(nunits)) == NULL)
-	return NULL; /* none left */
+    
+    if(p == freep) {
+      if((p = morecore(nunits)) == NULL) {
+	return NULL;
+      }
+    }
   }
 }
 
-void * wf_malloc(size_t nbytes)
+void * wf_malloc(unsigned nunits)
 {
   Header *p, *prevp;
   Header *largest = NULL;
   Header *largestprev = NULL;
   Header * morecore(unsigned);
-  unsigned nunits;
 
-  if(nbytes == 0) return NULL;
-
-  nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1;
-
-  if((prevp = freep) == NULL) {
-    base.s.ptr = freep = prevp = &base;
-    base.s.size = 0;
-  }
-  
+  prevp = freep;
   for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) {
     if(p->s.size >= nunits && (largest == NULL || p->s.size > largest->s.size)) {
       largest = p;
@@ -159,38 +149,36 @@ void * wf_malloc(size_t nbytes)
     }
   }
 
-  p = largest;
-  prevp = largestprev;
-
-  if (p->s.size == nunits)
-    prevp->s.ptr = p->s.ptr;
-  else {
-    p->s.size -= nunits;
-    p += p->s.size;
-    p->s.size = nunits;
-  }
-  freep = prevp;
-  return (void *)(p+1);
+  return allocate_memory(largestprev, largest, nunits);
 }
 
 void * malloc(size_t nbytes) {
+  unsigned nunits;
+  
+  if(nbytes == 0) {
+    return NULL;
+  }
+
+  nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1;
+
+  if(freep == NULL) {
+    base.s.ptr = freep = &base;
+    base.s.size = 0;
+  }
+  
   if(STRATEGY == 1) {
-    return ff_malloc(nbytes);
+    return ff_malloc(nunits);
   } else if(STRATEGY == 3) {
-    return wf_malloc(nbytes);    
+    return wf_malloc(nunits);    
   } else {
     fprintf(stderr, "Unsupported strategy! Defaulting to first-fit.\n");
-    return ff_malloc(nbytes);
+    return ff_malloc(nunits);
   }
-}
-
-int findSize(void * ptr) {
-  Header *h = (Header *) ptr - 1;
-  return (h->s.size - 1) * sizeof(Header);
 }
 
 void * realloc(void * ptr, size_t nbytes) {
   void * newptr;
+  Header *h;
   int size;
   
   if(ptr == NULL) {
@@ -207,7 +195,8 @@ void * realloc(void * ptr, size_t nbytes) {
     return NULL;
   }
 
-  size = findSize(ptr);
+  h = (Header *) ptr - 1;
+  size = (h->s.size - 1) * sizeof(Header);
   if(size < nbytes) {
     memcpy(newptr, ptr, size);
   } else {
