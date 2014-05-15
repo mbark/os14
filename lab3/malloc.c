@@ -93,7 +93,7 @@ static Header *morecore(unsigned nu)
   return freep;
 }
 
-void * nf_malloc(size_t nbytes)
+void * ff_malloc(size_t nbytes)
 {
   Header *p, *prevp;
   Header * morecore(unsigned);
@@ -174,7 +174,14 @@ void * wf_malloc(size_t nbytes)
 }
 
 void * malloc(size_t nbytes) {
-  return nf_malloc(nbytes);
+  if(STRATEGY == 1) {
+    return ff_malloc(nbytes);
+  } else if(STRATEGY == 3) {
+    return wf_malloc(nbytes);    
+  } else {
+    fprintf(stderr, "Unsupported strategy! Defaulting to first-fit.\n");
+    return ff_malloc(nbytes);
+  }
 }
 
 int findSize(void * ptr) {
