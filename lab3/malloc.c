@@ -100,7 +100,6 @@ static Header *morecore(unsigned nu) {
   cp = sbrk(nu*sizeof(Header));
 #endif
   if(cp == (void *) -1){
-    perror("failed to get more memory");
     return NULL;
   }
   up = (Header *) cp;
