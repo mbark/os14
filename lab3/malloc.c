@@ -6,22 +6,22 @@
 #include <sys/mman.h>
 #include <stdio.h>
 
-#define NALLOC 1024                                     /* minimum #units to request */
+#define NALLOC 1024
 
-typedef long Align;                                     /* for alignment to long boundary */
+typedef long Align;
 
-union header {                                          /* block header */
+union header {
   struct {
-    union header *ptr;                                  /* next block if on free list */
-    unsigned size;                                      /* size of this block  - what unit? */ 
+    union header *ptr;
+    unsigned size;
   } s;
-  Align x;                                              /* force alignment of blocks */
+  Align x;
 };
 
 typedef union header Header;
 
-static Header base;                                     /* empty list to get started */
-static Header *freep = NULL;                            /* start of free list */
+static Header base;
+static Header *freep = NULL;
 
 /* free: put block ap in the free list */
 
@@ -29,24 +29,30 @@ void free(void * ap)
 {
   Header *bp, *p;
 
-  if(ap == NULL) return;                                /* Nothing to do */
+  if(ap == NULL) {
+    return;
+  }
 
-  bp = (Header *) ap - 1;                               /* point to block header */
-  for(p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr)
-    if(p >= p->s.ptr && (bp > p || bp < p->s.ptr))
-      break;                                            /* freed block at atrt or end of arena */
+  bp = (Header *) ap - 1;
+  for(p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr) {
+    if(p >= p->s.ptr && (bp > p || bp < p->s.ptr)) {
+      break;
+    }
+  }
 
-  if(bp + bp->s.size == p->s.ptr) {                     /* join to upper nb */
+  if(bp + bp->s.size == p->s.ptr) {
     bp->s.size += p->s.ptr->s.size;
     bp->s.ptr = p->s.ptr->s.ptr;
-  }
-  else
+  } else {
     bp->s.ptr = p->s.ptr;
-  if(p + p->s.size == bp) {                             /* join to lower nbr */
+  }
+  
+  if(p + p->s.size == bp) {
     p->s.size += bp->s.size;
     p->s.ptr = bp->s.ptr;
-  } else
+  } else {
     p->s.ptr = bp;
+  }
   freep = p;
 }
 
@@ -56,16 +62,14 @@ void free(void * ap)
 
 static void * __endHeap = 0;
 
-void * endHeap(void)
-{
+void * endHeap(void) {
   if(__endHeap == 0) __endHeap = sbrk(0);
   return __endHeap;
 }
 #endif
 
 
-static Header *morecore(unsigned nu)
-{
+static Header *morecore(unsigned nu) {
   void *cp;
   Header *up;
 #ifdef MMAP
@@ -73,8 +77,9 @@ static Header *morecore(unsigned nu)
   if(__endHeap == 0) __endHeap = sbrk(0);
 #endif
 
-  if(nu < NALLOC)
+  if(nu < NALLOC) {
     nu = NALLOC;
+  }
 #ifdef MMAP
   noPages = ((nu*sizeof(Header))-1)/getpagesize() + 1;
   cp = mmap(__endHeap, noPages*getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -83,7 +88,7 @@ static Header *morecore(unsigned nu)
 #else
   cp = sbrk(nu*sizeof(Header));
 #endif
-  if(cp == (void *) -1){                                 /* no space at all */
+  if(cp == (void *) -1){
     perror("failed to get more memory");
     return NULL;
   }
@@ -94,9 +99,9 @@ static Header *morecore(unsigned nu)
 }
 
 void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
-  if (p->s.size == nunits)
+  if (p->s.size == nunits) {
     prevp->s.ptr = p->s.ptr;
-  else {
+  } else {
     p->s.size -= nunits;
     p += p->s.size;
     p->s.size = nunits;
@@ -105,23 +110,22 @@ void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
   return (void *)(p+1);
 }
 
-void * ff_malloc(unsigned nunits)
-{
+void * ff_malloc(unsigned nunits) {
   Header *p, *prevp;
   Header * morecore(unsigned);
 
   prevp = freep;
   for(p= prevp->s.ptr; ; prevp = p, p = p->s.ptr) {
-    if(p->s.size >= nunits) { /* big enough */
+    if(p->s.size >= nunits) {
       return allocate_memory(prevp, p, nunits);
     }
-    
+
     if(p == freep) {
       if((p = morecore(nunits)) == NULL) {
-	return NULL;
-      }
-    }
-  }
+       return NULL;
+     }
+   }
+ }
 }
 
 void * wf_malloc(unsigned nunits)
@@ -140,16 +144,16 @@ void * wf_malloc(unsigned nunits)
 
     if(p == freep) {
       if(largest != NULL) {
-	break;
-      }
-      
-      if((p = morecore(nunits)) == NULL) {
-	return NULL;
-      }
-    }
-  }
+       break;
+     }
 
-  return allocate_memory(largestprev, largest, nunits);
+     if((p = morecore(nunits)) == NULL) {
+       return NULL;
+     }
+   }
+ }
+
+ return allocate_memory(largestprev, largest, nunits);
 }
 
 void * malloc(size_t nbytes) {
