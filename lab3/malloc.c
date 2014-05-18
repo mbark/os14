@@ -74,7 +74,9 @@ void free(void * ap)
 static void * __endHeap = 0;
 
 void * endHeap(void) {
-  if(__endHeap == 0) __endHeap = sbrk(0);
+  if(__endHeap == 0) {
+    __endHeap = sbrk(0);
+  }
   return __endHeap;
 }
 #endif
@@ -85,7 +87,9 @@ static Header *morecore(unsigned nu) {
   Header *up;
 #ifdef MMAP
   unsigned noPages;
-  if(__endHeap == 0) __endHeap = sbrk(0);
+  if(__endHeap == 0) {
+    __endHeap = sbrk(0);
+  }
 #endif
 
   if(nu < NALLOC) {
