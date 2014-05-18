@@ -13,6 +13,7 @@ XFLAGS	= -g -Wall -DSTRATEGY=1
 #CC	= gcc -ansi -pedantic -Wall -g -pipe -O -pg
 CC	= gcc
 
+compile: $(BIN)
 
 all: $(BIN)
 	exec ./RUN_TESTS
