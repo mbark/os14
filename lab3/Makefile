@@ -15,6 +15,9 @@ CC	= gcc -ansi -Wall -g -pipe -O4 -pg
 
 compile: $(BIN)
 
+test: $(file) malloc.o $(X)
+	$(CC) $(CFLAGS) -o  $@ $(file) malloc.o $(X)
+
 all: $(BIN)
 	exec ./RUN_TESTS
 
