@@ -5,18 +5,29 @@
 #include "clock.h"
 
 int main(int argc, char *argv[]) {
+  int nbytes = 5;
+  void **ptrs;
   long num;
   long i;
-  void *ptr;
 
   num = atol(argv[1]);
+
+  ptrs = malloc(sizeof(void*) * num);
+
+  for(i = 0; i < num; i++) {
+    ptrs[i] = malloc(nbytes);
+    malloc(1);
+  }
+
+  for(i = 0; i < num; i++) {
+    free(ptrs[i]);
+  }
 
   _reset_clock();
   for(i = 0; i < num; i++) {
     _resume();
-    ptr = malloc(100);
+    ptrs[i] = malloc(nbytes + 1);
     _pause();
-    free(ptr);
   }
 
   _print_elapsed_time();
