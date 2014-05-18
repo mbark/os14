@@ -20,11 +20,22 @@ union header {
 
 typedef union header Header;
 
+/*
+When the list is empty this will be used to point to the list.
+*/
 static Header base;
+/*
+A pointer that points somewhere in the circular list of memory pointers.
+*/
 static Header *freep = NULL;
 
-/* free: put block ap in the free list */
-
+/*
+Frees up the memory previously allocated. The parameter, ap, is the pointer
+returned by a previous malloc or realloc call. The method will find the pointer
+saved by malloc and move it to the list of freed nodes. It will also, if
+possible, merge the memory of two nodes to create a node with more memory.
+ap is the pointer to the previosly allocated memory
+*/
 void free(void * ap)
 {
   Header *bp, *p;
@@ -98,6 +109,14 @@ static Header *morecore(unsigned nu) {
   return freep;
 }
 
+/*
+Allocates memory by reducing the size of p's free size. The pointer's
+free size will be split if necessary.
+prevp is the pointer that points to p
+p is the pointer pointing to the place where we will allocate the
+memory.
+nunits is the memory to be allocated given as a number of headers (units).
+*/
 void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
   if (p->s.size == nunits) {
     prevp->s.ptr = p->s.ptr;
@@ -110,8 +129,20 @@ void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
   return (void *)(p+1);
 }
 
+/*
+Allocate memory using the First Fit algorithm. It will go through
+the list of free space and upon finding a spot large enough allocate that.
+nunits is the memory to be allocated given as a number of headers (units).
+*/
 void * ff_malloc(unsigned nunits) {
+  /*
+  The pointers used when traversing the list, p will be the current pointer
+  and prevp the previous one.
+  */
   Header *p, *prevp;
+  /*
+  A function prototype
+  */
   Header * morecore(unsigned);
 
   prevp = freep;
@@ -128,11 +159,29 @@ void * ff_malloc(unsigned nunits) {
  }
 }
 
+/*
+Allocate memory using the Worst Fit algorithm. Goes through the list of
+free space saving the largest free memory. Then allocates the largest found memory.
+nunits is the memory to be allocated given as a number of headers (units).
+*/
 void * wf_malloc(unsigned nunits)
 {
+  /*
+  The pointers used when traversing the list, p will be the current pointer
+  and prevp the previous one.
+  */
   Header *p, *prevp;
+  /*
+  The largest free memory found so far.
+  */
   Header *largest = NULL;
+  /*
+  The previous pointer to the largest memory found.
+  */
   Header *largestprev = NULL;
+  /*
+  A function prototype.
+  */
   Header * morecore(unsigned);
 
   prevp = freep;
@@ -155,8 +204,17 @@ void * wf_malloc(unsigned nunits)
 
  return allocate_memory(largestprev, largest, nunits);
 }
-
+/*
+Allocates memory of the size given by the parameter, nbytes. The method will
+convert the given bytes to units, that is convert it to the number of headers
+it corresponds to. The reason for this is that we want all data to align properly.
+It will then check what strategy is used and use the corresponding malloc algorithm.
+nbytes is the number of bytes to allocate.
+*/
 void * malloc(size_t nbytes) {
+  /*
+  The memory to allocate as units (number of headers)
+  */
   unsigned nunits;
   
   if(nbytes == 0) {
@@ -180,9 +238,26 @@ void * malloc(size_t nbytes) {
   }
 }
 
+/*
+Reallocates memory, that is increases or decreases the memory for previously allocated
+memory. It will allocate new memory of the given size, and then copy the data to the
+new allocated space. The size of the data copied is determined by min(nbytes, nprev)
+where nprev is the previously allocated size.
+ptr is the pointer to the previously allocated memory
+nbytes is the number of bytes to allocate
+*/
 void * realloc(void * ptr, size_t nbytes) {
+  /*
+  The pointer to the new allocated memory.
+  */
   void * newptr;
+  /*
+  The header for the previously allocated memory.
+  */
   Header *h;
+  /*
+  The size of the previously allocated memory.
+  */
   int size;
   
   if(ptr == NULL) {
