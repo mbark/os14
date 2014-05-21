@@ -163,10 +163,6 @@ void * ff_malloc(unsigned nunits) {
   and prevp the previous one.
   */
   Header *p, *prevp;
-  /*
-  A function prototype
-  */
-  Header * morecore(unsigned);
 
   prevp = freep;
   for(p= prevp->s.ptr; ; prevp = p, p = p->s.ptr) {
@@ -202,10 +198,6 @@ void * wf_malloc(unsigned nunits)
   The previous pointer to the largest memory found.
   */
   Header *largestprev = NULL;
-  /*
-  A function prototype.
-  */
-  Header * morecore(unsigned);
 
   prevp = freep;
   for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) {
