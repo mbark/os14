@@ -81,7 +81,10 @@ void * endHeap(void) {
 }
 #endif
 
-
+/* morecore uses mmap to allocate more memory from the operating system. nu units
+  of memory will be allocated (rounded up to the nearest integer number of
+  pages). The newly allocated memory will be added to the free list.
+  morecore returns freep. */
 static Header *morecore(unsigned nu) {
   void *cp;
   Header *up;
