@@ -10,13 +10,16 @@ CFLAGS	= -g -Wall -ansi -DSTRATEGY=1
 
 XFLAGS	= -g -Wall -DSTRATEGY=1
 
-CC	= gcc -ansi -Wall -g -pipe -O4 -pg
+CC	= gcc -ansi -Wall -g -pipe -O0
 #CC	= gcc
 
 compile: $(BIN)
 
 test: $(file) malloc.o $(X)
-	$(CC) $(CFLAGS) -o  $@ $(file) malloc.o $(X)
+	$(CC) $(CFLAGS) -o  test $(file) malloc.o  mytests/clock.c $(X)
+
+test_system: $(file) $(X)
+	$(CC) $(CFLAGS) -o  test $(file) mytests/clock.c $(X)
 
 all: $(BIN)
 	exec ./RUN_TESTS
@@ -46,7 +49,7 @@ t7: malloc.o $(X)
 	$(CC) $(XFLAGS) -o $@  tstcrash_complex.c malloc.o $(X) 
 
 clean:
-	\rm -f $(BIN) $(OBJ) core
+	\rm -f $(BIN) $(OBJ) test test_system core
 
 cleanall: clean
 	\rm -f *~
