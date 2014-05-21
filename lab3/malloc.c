@@ -1,3 +1,12 @@
+/*
+malloc contains implementations of three important methods to handle memory
+in C - malloc, free and realloc. malloc is used to allocate memory, free to
+free up previously allocated memory and realloc to change the amount of
+previously allocated memory.
+
+malloc has two different strategies for how it works - Next Fit and Worst Fit.
+To use Next Fit set use STRATEGY = 1 and to use Worst Fit STRATEGY = 3.
+*/
 #define _GNU_SOURCE
 #include "brk.h"
 #include <unistd.h>
