@@ -21,11 +21,12 @@ union header {
 typedef union header Header;
 
 /*
-When the list is empty this will be used to point to the list.
+The first element in the list of free memory. Used as base for the list.
 */
 static Header base;
 /*
-A pointer that points somewhere in the circular list of memory pointers.
+A pointer that points to the most recently used node in the circular
+list of memory pointers.
 */
 static Header *freep = NULL;
 
@@ -38,6 +39,8 @@ ap is the pointer to the previosly allocated memory
 */
 void free(void * ap)
 {
+  /* bp points to the header of ap. */
+  /* p points to the free memory chunk closest to bp with a lower address. */
   Header *bp, *p;
 
   if(ap == NULL) {
@@ -71,8 +74,10 @@ void free(void * ap)
 
 #ifdef MMAP
 
+/* Holds the address where the heap ends. */
 static void * __endHeap = 0;
 
+/* Returns the address where the heap ends. */
 void * endHeap(void) {
   if(__endHeap == 0) {
     __endHeap = sbrk(0);
@@ -86,9 +91,12 @@ void * endHeap(void) {
   pages). The newly allocated memory will be added to the free list.
   morecore returns freep. */
 static Header *morecore(unsigned nu) {
+  /* Holds the return value of mmap. */
   void *cp;
+  /* A pointer to the header of the newly allocated memory chunk. */
   Header *up;
 #ifdef MMAP
+  /* The number of pages to allocate. */
   unsigned noPages;
   if(__endHeap == 0) {
     __endHeap = sbrk(0);
@@ -118,7 +126,7 @@ static Header *morecore(unsigned nu) {
 /*
 Allocates memory by reducing the size of p's free size. The pointer's
 free size will be split if necessary.
-prevp is the pointer that points to p
+prevp is the pointer to the header that points to p
 p is the pointer pointing to the place where we will allocate the
 memory.
 nunits is the memory to be allocated given as a number of headers (units).
@@ -138,7 +146,7 @@ void *allocate_memory(Header *prevp, Header *p, unsigned nunits) {
 /*
 Allocate memory using the First Fit algorithm. It will go through
 the list of free space and upon finding a spot large enough allocate that.
-nunits is the memory to be allocated given as a number of headers (units).
+nunits is the amount of memory to be allocated given as a number of headers (units).
 */
 void * ff_malloc(unsigned nunits) {
   /*
@@ -168,7 +176,7 @@ void * ff_malloc(unsigned nunits) {
 /*
 Allocate memory using the Worst Fit algorithm. Goes through the list of
 free space saving the largest free memory. Then allocates the largest found memory.
-nunits is the memory to be allocated given as a number of headers (units).
+nunits is the amount of memory to be allocated given as a number of headers (units).
 */
 void * wf_malloc(unsigned nunits)
 {
